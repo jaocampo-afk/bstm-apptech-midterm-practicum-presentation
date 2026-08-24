@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Okada Manila — Front Desk | Guest Reservations</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink:#10161C;
+    --ink-2:#182129;
+    --ink-3:#212C36;
+    --ink-line:#2C3945;
+    --gold:#B8925A;
+    --gold-light:#D9BD8C;
+    --gold-dim:#8A6B41;
+    --cream:#F5F1E8;
+    --paper:#FFFFFF;
+    --line:#E3DCCB;
+    --ink-soft:#6B7178;
+    --success:#3F7A5D;
+    --success-bg:#E6F0EA;
+    --success-line:#BFDACB;
+    --danger:#A23B3B;
+    --danger-bg:#F5E6E5;
+    --danger-line:#E1BFBE;
+    --amber:#A8763B;
+    --amber-bg:#F3EADA;
+    --amber-line:#DFC79B;
+  }
+  *{ box-sizing:border-box; }
+  body{ font-family:'Inter',sans-serif; background:var(--cream); color:var(--ink); }
+  .font-display{ font-family:'Playfair Display', serif; }
+  .font-mono{ font-family:'IBM Plex Mono', monospace; }
+  .tracking-wider2{ letter-spacing:.14em; }
+  .tracking-wider3{ letter-spacing:.22em; }
+
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background:#00000022; border-radius:8px; }
+
+  .fade-in{ animation: fadeIn .5s ease both; }
+  @keyframes fadeIn{ from{ opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .welcome-fade{ animation: welcomeFade 2.6s ease-in-out both; }
+  @keyframes welcomeFade{
+    0%{ opacity:0; }
+    12%{ opacity:1; }
+    82%{ opacity:1; }
+    100%{ opacity:0; }
+  }
+  .welcome-mark{ animation: markPop 1s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes markPop{ 0%{ opacity:0; transform:scale(.85);} 100%{opacity:1; transform:scale(1);} }
+
+  .hidden{ display:none !important; }
+
+  .room-card{ transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+  .room-card.selectable:hover{ transform: translateY(-3px); box-shadow: 0 10px 24px -8px rgba(16,22,28,.22); border-color: var(--gold); }
+  .room-card.selectable:active{ transform: translateY(-1px); }
+
+  .keycard-notch{
+    background: radial-gradient(circle at center, transparent 60%, var(--paper) 61%) ;
+  }
+
+  .nav-link{ position:relative; }
+  .nav-link.active{ background: var(--ink-3); color:#fff; }
+  .nav-link.active::before{
+    content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; background:var(--gold); border-radius:2px;
+  }
+
+  input[type="text"], input[type="number"], input[type="date"], input[type="tel"], input[type="email"], select, textarea{
+    background:#fff; border:1px solid var(--line); border-radius:.5rem; padding:.6rem .75rem; font-size:.875rem; width:100%; color:var(--ink);
+  }
+  input:focus, select:focus, textarea:focus{ outline:2px solid var(--gold-light); outline-offset:1px; border-color:var(--gold); }
+  label.field-label{ font-size:.72rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:.32rem; display:block; }
+
+  .btn-gold{ background:var(--gold); color:#1B1300; font-weight:700; transition:filter .15s ease, transform .1s ease; }
+  .btn-gold:hover{ filter:brightness(1.06); }
+  .btn-gold:active{ transform:scale(.98); }
+  .btn-gold:disabled{ background:#C9BFA9; color:#8C8471; cursor:not-allowed; filter:none; }
+
+  .btn-ghost{ background:transparent; border:1px solid var(--line); color:var(--ink); }
+  .btn-ghost:hover{ border-color:var(--gold); color:var(--gold-dim); }
+
+  .chip{ border:1px solid var(--line); background:#fff; }
+  .chip.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  .pay-tile{ border:1.5px solid var(--line); transition:.15s ease; cursor:pointer; }
+  .pay-tile:hover{ border-color:var(--gold-light); }
+  .pay-tile.selected{ border-color:var(--gold); background:#FBF6EC; box-shadow:0 0 0 3px #B8925A22; }
+
+  .qr-pixel{ fill:#10161C; }
+
+  input[type="checkbox"]{ width:16px; height:16px; accent-color:#B8925A; }
+</style>
+
+</head>
+<body class="antialiased">
+
+<!-- ============ TOP BANNER ============ -->
+<div class="w-full text-center py-2 px-4" style="background:var(--ink); border-bottom:1px solid var(--ink-line);">
+  <p class="text-[24px] sm:text-m b tracking-wider2 uppercase" style="color:var(--gold-light);">APPTECH MIDTERM Practicum Activity (Still in development)</p>
+</div>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="login-screen" class="min-h-screen w-full flex items-center justify-center relative overflow-hidden" style="background:var(--ink);">
+  <div class="absolute inset-0 opacity-[0.06]" style="background-image:radial-gradient(circle at 1px 1px, #fff 1px, transparent 0); background-size:26px 26px;"></div>
+  <div class="absolute -top-40 -right-40 w-[520px] h-[520px] rounded-full" style="background:radial-gradient(circle, #B8925A22, transparent 70%);"></div>
+  <div class="absolute -bottom-40 -left-40 w-[520px] h-[520px] rounded-full" style="background:radial-gradient(circle, #B8925A18, transparent 70%);"></div>
+
+  <div class="relative w-full max-w-md mx-4 fade-in">
+    <div class="flex flex-col items-center mb-8">
+      <div class="w-16 h-16 rounded-full flex items-center justify-center border" style="border-color:var(--gold); color:var(--gold-light);">
+        <span class="font-display text-2xl">OM</span>
+      </div>
+      <p class="mt-4 text-[11px] tracking-wider3 uppercase" style="color:var(--gold-light);">Okada Manila</p>
+      <h1 class="font-display text-white text-2xl mt-1">Front Desk Portal</h1>
+      <p class="text-white/40 text-xs mt-1">Guest Reservations System</p>
+    </div>
+
+    <form id="login-form" class="bg-white rounded-2xl p-8 shadow-2xl">
+      <div class="mb-5">
+        <label class="field-label">Username</label>
+        <input type="text" id="login-username" placeholder="admin123" autocomplete="off" />
+      </div>
+      <div class="mb-2">
+        <label class="field-label">Password</label>
+        <input type="text" id="login-password" placeholder="••••" autocomplete="off" />
+      </div>
+      <p id="login-error" class="hidden text-xs text-red-600 font-medium mt-2">Incorrect username or password. Please try again.</p>
+      <button type="submit" class="btn-gold w-full rounded-lg py-3 mt-6 text-sm tracking-wide">Sign In</button>
+      <p class="text-center text-[11px] text-gray-400 mt-5">Demo access — username <span class="font-mono text-gray-500">admin123</span> · password <span class="font-mono text-gray-500">123</span></p>
+    </form>
+  </div>
+</div>
+
+<!-- ============ WELCOME OVERLAY ============ -->
+<div id="welcome-overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:var(--ink);">
+  <div class="text-center welcome-fade">
+    <div class="welcome-mark w-20 h-20 mx-auto rounded-full flex items-center justify-center border" style="border-color:var(--gold); color:var(--gold-light);">
+      <span class="font-display text-3xl">OM</span>
+    </div>
+    <h2 class="font-display text-white text-3xl mt-6">Welcome, Front Desk Officer</h2>
+    <p class="text-white/40 text-sm mt-2 tracking-wide">Preparing your dashboard…</p>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="app" class="hidden min-h-screen">
+  <div class="flex min-h-screen">
+
+    <!-- SIDENAV -->
+    <aside class="w-64 shrink-0 flex flex-col" style="background:var(--ink);">
+      <div class="px-6 pt-7 pb-6 border-b" style="border-color:var(--ink-line);">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center border shrink-0" style="border-color:var(--gold); color:var(--gold-light);">
+            <span class="font-display text-base">OM</span>
+          </div>
+          <div class="leading-tight">
+            <p class="text-white font-display text-[15px]">Okada Manila</p>
+            <p class="text-[10px] tracking-wider2 uppercase" style="color:var(--gold-light);">Front Desk</p>
+          </div>
+        </div>
+      </div>
+
+      <nav class="flex-1 px-3 py-5 space-y-1">
+        <p class="px-3 text-[10px] tracking-wider2 uppercase text-white/30 mb-2">Module 1</p>
+        <a href="#" id="nav-module1" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/85">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>
+          <span>Guest Reservation</span>
+        </a>
+
+        <p class="px-3 text-[10px] tracking-wider2 uppercase text-white/30 mb-2 mt-6">Module 2</p>
+        <a href="#" id="nav-module2" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/85">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h7"/></svg>
+          <span>Activity Log</span>
+        </a>
+
+        <p class="px-3 text-[10px] tracking-wider2 uppercase text-white/30 mb-2 mt-6">Module 3</p>
+        <a href="#" id="nav-module3" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/85">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+          <span>Hotel Report</span>
+        </a>
+      </nav>
+
+      <div class="px-3 pb-5 pt-3 border-t" style="border-color:var(--ink-line);">
+        <div class="flex items-center gap-3 px-3 py-2">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold" style="background:var(--ink-3); color:var(--gold-light);">FD</div>
+          <div class="leading-tight">
+            <p class="text-white text-sm">Front Desk Officer</p>
+            <p class="text-white/35 text-[11px]">admin123</p>
+          </div>
+        </div>
+        <button id="logout-btn" class="w-full mt-2 text-left px-3 py-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 text-xs flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          Log out
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 min-w-0">
+      <header class="flex items-center justify-between px-8 py-5 border-b bg-white/70 backdrop-blur sticky top-0 z-10" style="border-color:var(--line);">
+        <div>
+          <p id="page-eyebrow" class="text-[11px] tracking-wider2 uppercase" style="color:var(--gold-dim);">Module 1 — Guest Reservation</p>
+          <h1 id="page-title" class="font-display text-2xl mt-0.5">Room Availability</h1>
+        </div>
+        <div class="text-right">
+          <p id="header-clock" class="text-sm font-mono text-gray-600"></p>
+          <p class="text-[11px] text-gray-400">Okada Manila · Parañaque, PH</p>
+        </div>
+      </header>
+
+      <div class="p-8">
+
+        <!-- ===== VIEW: ROOMS ===== -->
+        <section id="view-rooms">
+          <div class="grid grid-cols-3 gap-4 mb-7">
+            <div class="rounded-xl p-5 flex items-center justify-between" style="background:var(--success-bg); border:1px solid var(--success-line);">
+              <div>
+                <p class="text-[11px] tracking-wider2 uppercase font-semibold" style="color:var(--success);">Available</p>
+                <p id="stat-available" class="font-display text-3xl mt-1" style="color:var(--success);">0</p>
+              </div>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--success);"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <div class="rounded-xl p-5 flex items-center justify-between" style="background:var(--danger-bg); border:1px solid var(--danger-line);">
+              <div>
+                <p class="text-[11px] tracking-wider2 uppercase font-semibold" style="color:var(--danger);">Occupied</p>
+                <p id="stat-occupied" class="font-display text-3xl mt-1" style="color:var(--danger);">0</p>
+              </div>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--danger);"><rect x="3" y="10" width="18" height="10" rx="1.5"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/></svg>
+            </div>
+            <div class="rounded-xl p-5 flex items-center justify-between" style="background:var(--amber-bg); border:1px solid var(--amber-line);">
+              <div>
+                <p class="text-[11px] tracking-wider2 uppercase font-semibold" style="color:var(--amber);">Not Available — Maintenance</p>
+                <p id="stat-maintenance" class="font-display text-3xl mt-1" style="color:var(--amber);">0</p>
+              </div>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--amber);"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.1-3.1a5 5 0 0 1-6.6 6.6L4.7 21.3a2 2 0 0 1-2.8-2.8l9.5-9.5a5 5 0 0 1 6.6-6.6l-3.1 3.1z"/></svg>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between mb-4">
+            <div id="bed-filters" class="flex items-center gap-2 flex-wrap"></div>
+            <p class="text-xs text-gray-400">Tap an available room to begin a reservation</p>
+          </div>
+
+          <div id="rooms-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+        </section>
+
+        <!-- ===== VIEW: BOOKING ===== -->
+        <section id="view-booking" class="hidden max-w-4xl">
+          <button class="back-to-rooms text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1 mb-4">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            Back to Room Availability
+          </button>
+
+          <div id="booking-room-summary" class="rounded-xl p-5 mb-6 flex items-center justify-between" style="background:var(--ink); color:#fff;"></div>
+
+          <form id="booking-form" class="space-y-8">
+            <div>
+              <h3 class="font-display text-lg mb-4 pb-2 border-b" style="border-color:var(--line);">Guest Information</h3>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                  <label class="field-label">Full Name</label>
+                  <input type="text" id="f-fullname" required placeholder="Juan Dela Cruz" />
+                </div>
+                <div><label class="field-label">Age</label><input type="number" id="f-age" min="0" max="120" required /></div>
+                <div>
+                  <label class="field-label">Gender</label>
+                  <select id="f-gender" required>
+                    <option value="">Select</option>
+                    <option>Male</option><option>Female</option><option>Prefer not to say</option>
+                  </select>
+                </div>
+                <div><label class="field-label">Nationality</label><select id="f-nationality" required><option value="">Select Nationality</option><option>Filipino</option><option>American</option><option>Australian</option><option>British</option><option>Canadian</option><option>Chinese</option><option>French</option><option>German</option><option>Indian</option><option>Indonesian</option><option>Japanese</option><option>Korean</option><option>Malaysian</option><option>Singaporean</option><option>Spanish</option><option>Thai</option><option>Vietnamese</option><option>Other</option></select></div>                <div><label class="field-label">Contact Number</label><input type="tel" id="f-contact" required placeholder="09xx xxx xxxx" /></div>
+                <div><label class="field-label">Email Address</label><input type="email" id="f-email" required placeholder="guest@email.com" /></div>
+                <div>
+                  <label class="field-label">Number of Guests</label>
+                  <input type="number" id="f-guests" required min="1" />
+                  <p id="guests-hint" class="text-[11px] text-gray-400 mt-1"></p>
+                </div>
+                <div class="col-span-2"><label class="field-label">Address</label><select id="f-country" required><option value="">Select Country</option><option>Philippines</option><option>United States</option><option>Canada</option><option>United Kingdom</option><option>Australia</option><option>Japan</option><option>South Korea</option><option>China</option><option>Singapore</option><option>Malaysia</option><option>Thailand</option><option>Indonesia</option><option>Vietnam</option><option>India</option><option>Other</option></select><input type="text" id="f-address" required placeholder="Street, City, Province" /></div>              </div>
+            </div>
+
+            <div>
+              <h3 class="font-display text-lg mb-4 pb-2 border-b" style="border-color:var(--line);">Stay Details</h3>
+              <div class="grid grid-cols-2 gap-4">
+                <div><label class="field-label">Check-in</label><input type="date" id="f-checkin" required /></div>
+                <div><label class="field-label">Check-out</label><input type="date" id="f-checkout" required /></div>
+              </div>
+              <p id="stay-error" class="hidden text-xs text-red-600 mt-2 font-medium">Check-out must be after check-in.</p>
+            </div>
+
+            <div>
+              <h3 class="font-display text-lg mb-4 pb-2 border-b" style="border-color:var(--line);">Accessibility Needs</h3>
+              <div class="flex flex-wrap gap-5">
+                <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" id="a-wheelchair" /> Wheelchair Accessible Room</label>
+                <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" id="a-bathroom" /> Accessible Bathroom</label>
+                <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" id="a-elevator" /> Elevator Access</label>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="font-display text-lg mb-4 pb-2 border-b" style="border-color:var(--line);">Emergency Contact</h3>
+              <div class="grid grid-cols-2 gap-4">
+                <div><label class="field-label">Emergency Contact Name</label><input type="text" id="f-emname" required /></div>
+                <div><label class="field-label">Emergency Contact #</label><input type="tel" id="f-emphone" required /></div>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-2">
+              <button type="submit" class="btn-gold rounded-lg px-8 py-3 text-sm tracking-wide">Continue to Payment →</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- ===== VIEW: PAYMENT ===== -->
+        <section id="view-payment" class="hidden max-w-4xl">
+          <button class="back-to-booking text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1 mb-4">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            Back to Guest Details
+          </button>
+
+          <div class="grid grid-cols-3 gap-6">
+            <div class="col-span-1">
+              <div class="bg-white rounded-xl border p-5 sticky top-24" style="border-color:var(--line);">
+                <h3 class="font-display text-base mb-4">Reservation Summary</h3>
+                <div id="pay-summary" class="space-y-2.5 text-sm"></div>
+              </div>
+            </div>
+
+            <div class="col-span-2 space-y-6">
+              <div>
+                <h3 class="font-display text-lg mb-3">Payment Method</h3>
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="pay-tile rounded-xl p-5" id="tile-qr" onclick="selectPayMethod('qr')">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:var(--ink);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D9BD8C" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg>
+                      </div>
+                      <div>
+                        <p class="text-sm font-semibold">BPI / BDO</p>
+                        <p class="text-[11px] text-gray-400">Scan QR to pay</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="pay-tile rounded-xl p-5" id="tile-cash" onclick="selectPayMethod('cash')">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:var(--ink);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D9BD8C" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+                      </div>
+                      <div>
+                        <p class="text-sm font-semibold">Cash on Hand</p>
+                        <p class="text-[11px] text-gray-400">Front desk POS</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- QR PANEL -->
+              <div id="panel-qr" class="hidden bg-white rounded-xl border p-6 text-center" style="border-color:var(--line);">
+                <p class="text-[11px] tracking-wider2 uppercase text-gray-400 mb-3">Scan to Pay — BPI / BDO</p>
+                <div class="inline-block p-4 rounded-xl border" style="border-color:var(--line);" id="qr-holder"></div>
+                <p class="font-display text-3xl mt-4" id="qr-amount">₱0.00</p>
+                <p class="text-xs text-gray-400 mt-1">Okada Manila Front Desk · Official Payment QR</p>
+                <p class="text-xs text-gray-500 mt-4 max-w-sm mx-auto">Front desk officer must confirm the guest has completed payment on their banking app before proceeding.</p>
+                <button id="btn-qr-confirm" class="btn-gold rounded-lg px-8 py-3 text-sm tracking-wide mt-5">Paid — Confirm Booking</button>
+              </div>
+
+              <!-- CASH PANEL -->
+              <div id="panel-cash" class="hidden bg-white rounded-xl border p-6" style="border-color:var(--line);">
+                <p class="text-[11px] tracking-wider2 uppercase text-gray-400 mb-4">Cash Payment — POS</p>
+                <div class="space-y-3 font-mono text-sm">
+                  <div class="flex justify-between"><span class="text-gray-500">Room charge <span id="cash-nights-label"></span></span><span id="cash-room-total">₱0.00</span></div>
+                  <div class="grid grid-cols-2 gap-3 items-center">
+                    <input type="text" id="addon1-label" placeholder="Add-on 1 (e.g. Buffet Breakfast)" class="!font-sans" />
+                    <input type="number" id="addon1-amount" placeholder="0.00" min="0" class="text-right" />
+                  </div>
+                  <div class="grid grid-cols-2 gap-3 items-center">
+                    <input type="text" id="addon2-label" placeholder="Add-on 2 (e.g. Airport Transfer)" class="!font-sans" />
+                    <input type="number" id="addon2-amount" placeholder="0.00" min="0" class="text-right" />
+                  </div>
+                  <div class="pt-3 border-t" style="border-color:var(--line);">
+                    <div class="flex justify-between text-gray-600"><span>Subtotal</span><span id="cash-subtotal">₱0.00</span></div>
+                    <div class="flex justify-between text-gray-600 mt-1"><span>Tax (12%)</span><span id="cash-tax">₱0.00</span></div>
+                    <div class="flex justify-between mt-2 pt-2 border-t font-semibold text-base" style="border-color:var(--line);"><span>Total Amount Due</span><span id="cash-total">₱0.00</span></div>
+                  </div>
+                  <div class="pt-3 border-t" style="border-color:var(--line);">
+                    <label class="field-label !font-sans">Cash Received</label>
+                    <input type="number" id="cash-received" min="0" placeholder="0.00" class="text-right text-lg font-semibold" />
+                    <div class="flex justify-between mt-3 text-gray-600"><span>Change</span><span id="cash-change">₱0.00</span></div>
+                  </div>
+                </div>
+                <button id="btn-cash-confirm" disabled class="btn-gold rounded-lg px-8 py-3 text-sm tracking-wide mt-5 w-full">Confirm & Complete Booking</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== VIEW: SUCCESS ===== -->
+        <section id="view-success" class="hidden max-w-lg mx-auto">
+          <div class="bg-white rounded-2xl border p-10 text-center fade-in" style="border-color:var(--line);">
+            <div class="w-16 h-16 rounded-full mx-auto flex items-center justify-center" style="background:var(--success-bg); border:1px solid var(--success-line);">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <h2 class="font-display text-2xl mt-5">Booking Successful</h2>
+            <p class="text-sm text-gray-400 mt-1">The room has been marked as occupied.</p>
+            <div id="success-summary" class="mt-6 text-left text-sm bg-gray-50 rounded-xl p-5 space-y-2 font-mono"></div>
+            <button class="back-to-rooms btn-gold rounded-lg px-8 py-3 text-sm tracking-wide mt-7">Back to Room Availability</button>
+          </div>
+        </section>
+
+        <section id="view-activitylog" class="hidden"></section>
+
+        <section id="view-report3" class="hidden"></section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="activity-log.js"></script>
+<script src="server.js"></script>
+<script src="module3.js"></script>
+
+</body>
+</html>
